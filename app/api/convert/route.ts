@@ -1,18 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTranscript, extractVideoId, getVideoInfo } from "@/lib/youtube";
 import { generateBlogPost, AIProvider } from "@/lib/ai";
+import { verifySession, markSessionUsed } from "@/lib/stripe";
 
 export const maxDuration = 60; // Allow up to 60 seconds for API route
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { url, provider = "openai" } = body as {
+    const { url, provider = "openai", sessionId } = body as {
       url: string;
       provider?: AIProvider;
+      sessionId?: string;
     };
 
-    if (!url) {
+    // --- Payment verification ---
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: "Payment required. Please complete checkout first." },
+        { status: 402 }
+      );
+    }
+
+    const payment = await verifySession(sessionId);
+    if (!payment.valid) {
+      return NextResponse.json(
+        { error: "Invalid or already used payment session." },
+        { status: 402 }
+      );
+    }
+
+    // Use the URL from the payment metadata if available (prevents tampering)
+    const videoUrl = payment.videoUrl || url;
+
+    if (!videoUrl) {
       return NextResponse.json(
         { error: "YouTube URL is required" },
         { status: 400 }
@@ -20,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract video ID from URL
-    const videoId = extractVideoId(url);
+    const videoId = extractVideoId(videoUrl);
     if (!videoId) {
       return NextResponse.json(
         { error: "Invalid YouTube URL" },
@@ -41,11 +62,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate blog post using AI
+    const aiProvider = (payment.provider as AIProvider) || provider;
     const blogPost = await generateBlogPost(
       transcript,
       videoInfo.title,
-      provider
+      aiProvider
     );
+
+    // Mark the session as used so it can't be reused
+    await markSessionUsed(sessionId);
 
     return NextResponse.json({
       title: blogPost.title,
@@ -56,12 +81,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Conversion error:", error);
-    
-    const message = error instanceof Error ? error.message : "Failed to convert video";
-    
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+
+    const message =
+      error instanceof Error ? error.message : "Failed to convert video";
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

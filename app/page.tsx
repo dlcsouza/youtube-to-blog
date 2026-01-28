@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { VideoForm } from "@/components/VideoForm";
 import { ResultDisplay } from "@/components/ResultDisplay";
+import { PricingSection } from "@/components/PricingSection";
 import { Youtube, Sparkles, FileText, Zap } from "lucide-react";
 
 type AIProvider = "openai" | "anthropic";
@@ -17,6 +18,27 @@ export default function Home() {
   const [result, setResult] = useState<ConversionResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [paidSuccess, setPaidSuccess] = useState(false);
+
+  // Check for Stripe redirect on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("session_id");
+    const canceled = params.get("canceled");
+
+    if (sid) {
+      setSessionId(sid);
+      setPaidSuccess(true);
+      // Clean URL without reloading
+      window.history.replaceState({}, "", "/");
+    }
+
+    if (canceled) {
+      setError("Checkout was canceled. You have not been charged.");
+      window.history.replaceState({}, "", "/");
+    }
+  }, []);
 
   const handleConvert = async (url: string, provider: AIProvider) => {
     setLoading(true);
@@ -29,7 +51,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url, provider }),
+        body: JSON.stringify({ url, provider, sessionId }),
       });
 
       const data = await response.json();
@@ -39,6 +61,8 @@ export default function Home() {
       }
 
       setResult(data);
+      setSessionId(null);
+      setPaidSuccess(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -88,8 +112,22 @@ export default function Home() {
         ))}
       </div>
 
+      {/* Payment success banner */}
+      {paidSuccess && (
+        <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-700">
+          <p className="font-medium">✅ Payment successful!</p>
+          <p className="text-sm">
+            Enter the YouTube URL below and click convert. Your session is ready.
+          </p>
+        </div>
+      )}
+
       {/* Form */}
-      <VideoForm onSubmit={handleConvert} loading={loading} />
+      <VideoForm
+        onSubmit={handleConvert}
+        loading={loading}
+        directConvert={paidSuccess}
+      />
 
       {/* Error */}
       {error && (
@@ -101,6 +139,9 @@ export default function Home() {
 
       {/* Result */}
       {result && <ResultDisplay result={result} />}
+
+      {/* Pricing Section */}
+      <PricingSection />
 
       {/* Footer */}
       <footer className="mt-16 text-center text-sm text-muted-foreground">
