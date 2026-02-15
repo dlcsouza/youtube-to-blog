@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { VideoForm } from "@/components/VideoForm";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { PricingSection } from "@/components/PricingSection";
+import { UsageBanner } from "@/components/UsageBanner";
 import { Youtube, Sparkles, FileText, Zap } from "lucide-react";
 
 type AIProvider = "openai" | "anthropic";
@@ -121,6 +122,9 @@ export default function Home() {
           </p>
         </div>
       )}
+
+      {/* Usage Banner - Show free tier stats */}
+      {!paidSuccess && <UsageBanner />}
 
       {/* Form */}
       <VideoForm
