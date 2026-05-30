@@ -2,8 +2,13 @@
 
 > Transform any YouTube video into a well-structured, SEO-optimized blog post using AI
 
-![Demo](./demo.gif)
-*Demo GIF placeholder - record your own!*
+![Build](https://img.shields.io/github/actions/workflow/status/dlcsouza/youtube-to-blog/ci.yml?branch=main&style=flat-square&label=build)
+![Tests](https://img.shields.io/badge/tests-playwright%20%2B%20jest-brightgreen?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
+
+> 📸 Screenshots coming soon — star the repo to be notified!
 
 ## ✨ Features
 
@@ -14,6 +19,21 @@
 - **📋 Copy to Clipboard** - One-click copy for your blog platform
 - **🎨 Modern UI** - Clean, responsive design with Tailwind CSS
 - **⚡ Fast** - Built on Next.js 14 with App Router
+
+## 💡 Why This Exists?
+
+**The content creator problem:** video is how you build an audience — but blogs are how Google finds you.
+
+Every YouTube video you publish contains hours of research, storytelling, and expertise. Yet most of that content is invisible to search engines. A well-optimized blog post for the same topic can drive organic traffic for years after the video is forgotten by the algorithm.
+
+This tool fills that gap:
+
+- **YouTubers** get blog posts without rewriting their scripts
+- **Educators** turn lecture recordings into readable references  
+- **Marketers** repurpose video content into SEO assets at scale
+- **Developers** can integrate it into their own content pipelines via API
+
+No copy-paste. No rehashing. Paste the URL, pick your AI, get publication-ready Markdown.
 
 ## 🚀 Quick Start
 
@@ -58,6 +78,64 @@
 
 5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
+
+### 60-Second Demo
+
+```bash
+# Clone, install, run — that's it
+git clone https://github.com/dlcsouza/youtube-to-blog.git && cd youtube-to-blog
+cp .env.example .env.local && echo "OPENAI_API_KEY=sk-your-key" >> .env.local
+npm install && npm run dev
+# Open http://localhost:3000, paste any YouTube URL with captions, click Convert
+```
+
+Paste a URL like `https://www.youtube.com/watch?v=dQw4w9WgXcQ` and you'll have a formatted blog post in under 30 seconds.
+
+## 🏗️ Architecture Overview
+
+[View interactive diagram →](./youtube-to-blog-architecture.html)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         User (Browser)                                  │
+│                    YouTube URL  →  Article                              │
+└──────────────────────────────┬──────────────────────────────────────────┘
+                               │  HTTP
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      Next.js 14 App Router                              │
+│                   TypeScript · SSR · API Routes                         │
+└────────────────┬────────────────────────────────┬───────────────────────┘
+                 │                                │
+    ┌────────────▼───────────┐      ┌─────────────▼──────────────────────┐
+    │    FRONTEND LAYER      │      │          SERVICE LAYER             │
+    │  ──────────────────    │      │  ──────────────────────────────    │
+    │  VideoForm             │      │  AI Orchestration  (lib/ai.ts)     │
+    │  ResultDisplay         │◄────►│  YouTube Transcript (lib/youtube)  │
+    │  PricingSection        │      │  Rate Limiter  (lib/rate-limit.ts) │
+    │  CopyButton            │      │  API: /api/convert/route.ts        │
+    │  UsageBanner           │      │                                    │
+    └────────────────────────┘      └──────┬──────────────┬─────────────┘
+                                           │              │
+                  ┌────────────────────────▼──┐    ┌──────▼──────────────┐
+                  │       AI PROVIDERS        │    │      PAYMENTS       │
+                  │  ─────────────────────    │    │  ─────────────────  │
+                  │  OpenAI GPT-4             │    │  Stripe             │
+                  │    ↓ (fallback)           │    │  Free / Pro / Team  │
+                  │  Anthropic Claude         │    │  Webhook handler    │
+                  └───────────────────────────┘    └─────────────────────┘
+```
+
+### Tech Decisions
+
+| Technology | Choice | Why |
+|---|---|---|
+| **Next.js 14** | App Router | SSR for fast initial load; clean API routes co-located with UI code; zero-config Vercel deploy |
+| **Dual AI** | OpenAI + Anthropic | GPT-4 for snappy general content; Claude for long-form nuanced writing; user picks per conversion |
+| **Stripe** | Payments | Built-in monetization with free/pro/team tiers; webhook-driven credit system; 5-minute integration |
+| **youtube-transcript** | Transcript | No YouTube Data API key required; works on any captioned video; handles multiple caption tracks |
+| **TypeScript** | Language | Catch API response shape errors at compile time; safe across the ai.ts ↔ route ↔ component boundary |
+| **Tailwind CSS** | Styling | Rapid UI iteration; utility-first keeps component files self-contained; no CSS file sprawl |
 
 ## 🔧 Environment Variables
 
@@ -151,13 +229,32 @@ MIT License - feel free to use this for personal or commercial projects!
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to:
+Contributions are welcome! Here's how to get started:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+### Contribution Guidelines
+
+- Keep PRs focused — one feature or fix per PR
+- Add tests for new API-touching code (Jest for unit, Playwright for E2E flows)
+- Follow the existing TypeScript patterns in `lib/` — no `any`, no untyped API responses
+- Run `npm run lint` and `npm test` before opening a PR
+
+### Roadmap Ideas
+
+Looking for something to work on? These are good first contributions:
+
+- [ ] **Multi-language support** — translate blog output to target language
+- [ ] **Batch processing** — convert a whole YouTube playlist at once
+- [ ] **Custom prompts** — let users define their own blog tone/style
+- [ ] **CMS integrations** — publish directly to Ghost, WordPress, Hashnode
+- [ ] **Podcast support** — extend transcript fetch to audio files
+- [ ] **Image extraction** — pull thumbnails/frames as article hero images
+- [ ] **Social snippets** — auto-generate tweet threads and LinkedIn posts from the blog
 
 ## 🐛 Known Limitations
 

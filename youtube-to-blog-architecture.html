@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube to Blog — Architecture Diagram</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #020617;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 24px;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      background: linear-gradient(90deg, #22d3ee, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+    .diagram-wrap {
+      width: 100%;
+      max-width: 960px;
+      overflow-x: auto;
+    }
+    svg text { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+    /* Summary cards */
+    .cards {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 40px;
+      max-width: 960px;
+      width: 100%;
+    }
+    .card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px 28px;
+      text-align: center;
+      flex: 1;
+      min-width: 160px;
+    }
+    .card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .card-label {
+      font-size: 0.78rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .cyan  { color: #22d3ee; }
+    .emerald { color: #34d399; }
+    .violet  { color: #a78bfa; }
+    .amber   { color: #fbbf24; }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 32px;
+      max-width: 960px;
+      width: 100%;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    footer {
+      margin-top: 48px;
+      font-size: 0.78rem;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>YouTube → Blog Architecture</h1>
+  <p class="subtitle">System design overview — Next.js 14 · Dual AI · Stripe · Playwright</p>
+
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 960 620" xmlns="http://www.w3.org/2000/svg" width="100%" height="auto">
+      <defs>
+        <!-- Arrow marker -->
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#475569" />
+        </marker>
+        <marker id="arrow-cyan" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#22d3ee" />
+        </marker>
+        <marker id="arrow-emerald" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#34d399" />
+        </marker>
+        <marker id="arrow-violet" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#a78bfa" />
+        </marker>
+        <!-- Glow filters -->
+        <filter id="glow-cyan">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-violet">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <!-- Gradients -->
+        <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#164e63;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#0e7490;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="grad-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#064e3b;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#065f46;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="grad-violet" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#2e1065;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#4c1d95;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="grad-amber" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#451a03;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#78350f;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="grad-slate" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+
+      <!-- Background -->
+      <rect width="960" height="620" fill="#020617" rx="16"/>
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- ROW 1 — USER + NEXTJS ROUTER            -->
+      <!-- ═══════════════════════════════════════ -->
+
+      <!-- User node -->
+      <rect x="60" y="40" width="140" height="80" rx="12" fill="url(#grad-slate)" stroke="#334155" stroke-width="1.5"/>
+      <!-- Browser icon placeholder -->
+      <rect x="80" y="55" width="100" height="50" rx="6" fill="none" stroke="#475569" stroke-width="1"/>
+      <rect x="80" y="55" width="100" height="12" rx="6" fill="#1e293b"/>
+      <circle cx="88" cy="61" r="3" fill="#ef4444" opacity="0.7"/>
+      <circle cx="97" cy="61" r="3" fill="#fbbf24" opacity="0.7"/>
+      <circle cx="106" cy="61" r="3" fill="#22c55e" opacity="0.7"/>
+      <text x="130" y="84" text-anchor="middle" font-size="10" fill="#64748b">youtube.com/watch?v=...</text>
+      <text x="130" y="136" text-anchor="middle" font-size="13" font-weight="600" fill="#94a3b8">User (Browser)</text>
+
+      <!-- Arrow: User → Next.js -->
+      <line x1="200" y1="80" x2="320" y2="80" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-cyan)" stroke-dasharray="0"/>
+      <text x="260" y="72" text-anchor="middle" font-size="10" fill="#22d3ee">YouTube URL</text>
+
+      <!-- Next.js App Router node -->
+      <rect x="320" y="36" width="280" height="88" rx="12" fill="url(#grad-cyan)" stroke="#22d3ee" stroke-width="1.5" filter="url(#glow-cyan)"/>
+      <text x="460" y="68" text-anchor="middle" font-size="15" font-weight="700" fill="#e0f2fe">Next.js 14</text>
+      <text x="460" y="86" text-anchor="middle" font-size="11" fill="#7dd3fc">App Router · TypeScript · SSR</text>
+      <text x="460" y="104" text-anchor="middle" font-size="10" fill="#38bdf8">app/ directory · API Routes · Server Components</text>
+
+      <!-- Arrow: Next.js → API Route -->
+      <line x1="460" y1="124" x2="460" y2="165" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- ROW 2 — FRONTEND + SERVICE LAYERS       -->
+      <!-- ═══════════════════════════════════════ -->
+
+      <!-- Frontend Layer group box -->
+      <rect x="40" y="170" width="390" height="180" rx="12" fill="#0c1a2e" stroke="#164e63" stroke-width="1.5"/>
+      <text x="235" y="194" text-anchor="middle" font-size="12" font-weight="600" fill="#22d3ee" letter-spacing="1">FRONTEND LAYER</text>
+
+      <!-- VideoForm -->
+      <rect x="60" y="204" width="105" height="64" rx="8" fill="url(#grad-cyan)" stroke="#22d3ee" stroke-width="1"/>
+      <text x="112" y="232" text-anchor="middle" font-size="12" font-weight="600" fill="#e0f2fe">VideoForm</text>
+      <text x="112" y="248" text-anchor="middle" font-size="9" fill="#7dd3fc">URL Input</text>
+      <text x="112" y="260" text-anchor="middle" font-size="9" fill="#7dd3fc">Provider Selector</text>
+
+      <!-- ResultDisplay -->
+      <rect x="182" y="204" width="105" height="64" rx="8" fill="url(#grad-cyan)" stroke="#22d3ee" stroke-width="1"/>
+      <text x="234" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#e0f2fe">ResultDisplay</text>
+      <text x="234" y="244" text-anchor="middle" font-size="9" fill="#7dd3fc">Preview · Markdown</text>
+      <text x="234" y="258" text-anchor="middle" font-size="9" fill="#7dd3fc">Formatted Article</text>
+
+      <!-- PricingSection -->
+      <rect x="304" y="204" width="110" height="64" rx="8" fill="url(#grad-cyan)" stroke="#22d3ee" stroke-width="1"/>
+      <text x="359" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#e0f2fe">PricingSection</text>
+      <text x="359" y="244" text-anchor="middle" font-size="9" fill="#7dd3fc">Free / Pro / Team</text>
+      <text x="359" y="258" text-anchor="middle" font-size="9" fill="#7dd3fc">Stripe Checkout</text>
+
+      <!-- CopyButton + UsageBanner sub-row -->
+      <rect x="60" y="285" width="155" height="46" rx="8" fill="#0f2944" stroke="#1e4060" stroke-width="1"/>
+      <text x="137" y="311" text-anchor="middle" font-size="11" fill="#7dd3fc">CopyButton</text>
+      <text x="137" y="325" text-anchor="middle" font-size="9" fill="#4b8ab5">Clipboard API</text>
+
+      <rect x="230" y="285" width="185" height="46" rx="8" fill="#0f2944" stroke="#1e4060" stroke-width="1"/>
+      <text x="322" y="311" text-anchor="middle" font-size="11" fill="#7dd3fc">UsageBanner</text>
+      <text x="322" y="325" text-anchor="middle" font-size="9" fill="#4b8ab5">Rate limit display · Free tier</text>
+
+      <!-- Service Layer group box -->
+      <rect x="450" y="170" width="470" height="180" rx="12" fill="#071a0e" stroke="#065f46" stroke-width="1.5"/>
+      <text x="685" y="194" text-anchor="middle" font-size="12" font-weight="600" fill="#34d399" letter-spacing="1">SERVICE LAYER</text>
+
+      <!-- AI Orchestration -->
+      <rect x="468" y="204" width="130" height="64" rx="8" fill="url(#grad-emerald)" stroke="#34d399" stroke-width="1"/>
+      <text x="533" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#d1fae5">AI Orchestration</text>
+      <text x="533" y="244" text-anchor="middle" font-size="9" fill="#6ee7b7">lib/ai.ts</text>
+      <text x="533" y="258" text-anchor="middle" font-size="9" fill="#6ee7b7">OpenAI · Anthropic SDK</text>
+
+      <!-- YouTube Transcript -->
+      <rect x="615" y="204" width="130" height="64" rx="8" fill="url(#grad-emerald)" stroke="#34d399" stroke-width="1"/>
+      <text x="680" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#d1fae5">YouTube Transcript</text>
+      <text x="680" y="244" text-anchor="middle" font-size="9" fill="#6ee7b7">lib/youtube.ts</text>
+      <text x="680" y="258" text-anchor="middle" font-size="9" fill="#6ee7b7">Caption extraction</text>
+
+      <!-- Rate Limiter -->
+      <rect x="762" y="204" width="140" height="64" rx="8" fill="url(#grad-emerald)" stroke="#34d399" stroke-width="1"/>
+      <text x="832" y="228" text-anchor="middle" font-size="11" font-weight="600" fill="#d1fae5">Rate Limiter</text>
+      <text x="832" y="244" text-anchor="middle" font-size="9" fill="#6ee7b7">lib/rate-limit.ts</text>
+      <text x="832" y="258" text-anchor="middle" font-size="9" fill="#6ee7b7">3 req/day free tier</text>
+
+      <!-- API route -->
+      <rect x="467" y="285" width="435" height="46" rx="8" fill="#0a2018" stroke="#134e2a" stroke-width="1"/>
+      <text x="684" y="309" text-anchor="middle" font-size="11" fill="#6ee7b7">API Route · app/api/convert/route.ts</text>
+      <text x="684" y="323" text-anchor="middle" font-size="9" fill="#34706a">POST handler · transcript → AI → Markdown response</text>
+
+      <!-- Arrow: Frontend → Service (horizontal connector) -->
+      <line x1="430" y1="250" x2="450" y2="250" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="4,3"/>
+      <text x="440" y="243" text-anchor="middle" font-size="9" fill="#475569">fetch</text>
+
+      <!-- Arrow down from layers -->
+      <line x1="235" y1="350" x2="235" y2="400" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+      <line x1="685" y1="350" x2="685" y2="400" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- ROW 3 — BOTTOM INFRASTRUCTURE           -->
+      <!-- ═══════════════════════════════════════ -->
+
+      <!-- AI Providers group -->
+      <rect x="40" y="405" width="380" height="150" rx="12" fill="#14023a" stroke="#4c1d95" stroke-width="1.5"/>
+      <text x="230" y="428" text-anchor="middle" font-size="12" font-weight="600" fill="#a78bfa" letter-spacing="1">AI PROVIDERS</text>
+
+      <!-- OpenAI -->
+      <rect x="58" y="438" width="155" height="100" rx="8" fill="url(#grad-violet)" stroke="#7c3aed" stroke-width="1" filter="url(#glow-violet)"/>
+      <text x="135" y="466" text-anchor="middle" font-size="13" font-weight="700" fill="#ede9fe">OpenAI GPT-4</text>
+      <text x="135" y="484" text-anchor="middle" font-size="9" fill="#c4b5fd">General content</text>
+      <text x="135" y="498" text-anchor="middle" font-size="9" fill="#c4b5fd">Fast turnaround</text>
+      <text x="135" y="512" text-anchor="middle" font-size="9" fill="#c4b5fd">~$0.05–0.15/conversion</text>
+      <text x="135" y="526" text-anchor="middle" font-size="9" fill="#8b5cf6">platform.openai.com</text>
+
+      <!-- Arrow between AI providers -->
+      <line x1="213" y1="488" x2="247" y2="488" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrow-violet)" stroke-dasharray="4,3"/>
+      <text x="230" y="482" text-anchor="middle" font-size="8" fill="#7c3aed">fallback</text>
+
+      <!-- Anthropic Claude -->
+      <rect x="248" y="438" width="155" height="100" rx="8" fill="url(#grad-violet)" stroke="#7c3aed" stroke-width="1" filter="url(#glow-violet)"/>
+      <text x="325" y="466" text-anchor="middle" font-size="13" font-weight="700" fill="#ede9fe">Anthropic Claude</text>
+      <text x="325" y="484" text-anchor="middle" font-size="9" fill="#c4b5fd">Long-form · nuanced</text>
+      <text x="325" y="498" text-anchor="middle" font-size="9" fill="#c4b5fd">200k context window</text>
+      <text x="325" y="512" text-anchor="middle" font-size="9" fill="#c4b5fd">Claude 3.5 Sonnet</text>
+      <text x="325" y="526" text-anchor="middle" font-size="9" fill="#8b5cf6">console.anthropic.com</text>
+
+      <!-- Payments group -->
+      <rect x="440" y="405" width="220" height="150" rx="12" fill="#1a0a00" stroke="#92400e" stroke-width="1.5"/>
+      <text x="550" y="428" text-anchor="middle" font-size="12" font-weight="600" fill="#fbbf24" letter-spacing="1">PAYMENTS</text>
+
+      <rect x="460" y="438" width="180" height="100" rx="8" fill="url(#grad-amber)" stroke="#d97706" stroke-width="1"/>
+      <text x="550" y="464" text-anchor="middle" font-size="14" font-weight="700" fill="#fef3c7">Stripe</text>
+      <text x="550" y="482" text-anchor="middle" font-size="9" fill="#fcd34d">lib/stripe.ts</text>
+      <text x="550" y="498" text-anchor="middle" font-size="9" fill="#fcd34d">Checkout Sessions</text>
+      <text x="550" y="514" text-anchor="middle" font-size="9" fill="#fcd34d">Webhook handler</text>
+      <text x="550" y="530" text-anchor="middle" font-size="9" fill="#d97706">Free → Pro → Team tiers</text>
+
+      <!-- Infrastructure group -->
+      <rect x="680" y="405" width="240" height="150" rx="12" fill="#0a0f1a" stroke="#1e3a5f" stroke-width="1.5"/>
+      <text x="800" y="428" text-anchor="middle" font-size="12" font-weight="600" fill="#60a5fa" letter-spacing="1">INFRASTRUCTURE</text>
+
+      <!-- Next.js SSR -->
+      <rect x="698" y="438" width="100" height="100" rx="8" fill="url(#grad-slate)" stroke="#334155" stroke-width="1"/>
+      <text x="748" y="466" text-anchor="middle" font-size="11" font-weight="600" fill="#e2e8f0">Next.js SSR</text>
+      <text x="748" y="482" text-anchor="middle" font-size="9" fill="#94a3b8">Vercel Edge</text>
+      <text x="748" y="498" text-anchor="middle" font-size="9" fill="#94a3b8">Zero-config deploy</text>
+      <text x="748" y="514" text-anchor="middle" font-size="9" fill="#94a3b8">Auto-scaling</text>
+
+      <!-- Tailwind CSS -->
+      <rect x="806" y="438" width="100" height="100" rx="8" fill="url(#grad-slate)" stroke="#334155" stroke-width="1"/>
+      <text x="856" y="466" text-anchor="middle" font-size="11" font-weight="600" fill="#e2e8f0">Tailwind CSS</text>
+      <text x="856" y="482" text-anchor="middle" font-size="9" fill="#94a3b8">Utility-first</text>
+      <text x="856" y="498" text-anchor="middle" font-size="9" fill="#94a3b8">Dark mode</text>
+      <text x="856" y="514" text-anchor="middle" font-size="9" fill="#94a3b8">Rapid iteration</text>
+
+      <!-- Bottom connector lines -->
+      <line x1="685" y1="350" x2="532" y2="400" stroke="#34d399" stroke-width="1.2" marker-end="url(#arrow-emerald)" stroke-dasharray="4,3"/>
+      <line x1="685" y1="350" x2="550" y2="400" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arrow)" stroke-dasharray="4,3"/>
+
+    </svg>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="cards">
+    <div class="card">
+      <span class="card-value violet">2</span>
+      <span class="card-label">AI Providers</span>
+    </div>
+    <div class="card">
+      <span class="card-value amber">Stripe</span>
+      <span class="card-label">Payment Integration</span>
+    </div>
+    <div class="card">
+      <span class="card-value emerald">E2E</span>
+      <span class="card-label">Playwright Tests</span>
+    </div>
+    <div class="card">
+      <span class="card-value cyan">MIT</span>
+      <span class="card-label">License</span>
+    </div>
+    <div class="card">
+      <span class="card-value" style="color:#f472b6">Next 14</span>
+      <span class="card-label">App Router</span>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#0e7490;border:1px solid #22d3ee"></div>
+      Frontend Layer (Cyan)
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#065f46;border:1px solid #34d399"></div>
+      Service Layer (Emerald)
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#4c1d95;border:1px solid #a78bfa"></div>
+      AI Providers (Violet)
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#78350f;border:1px solid #fbbf24"></div>
+      Payments (Amber)
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#1e293b;border:1px solid #475569"></div>
+      Infrastructure (Slate)
+    </div>
+    <div class="legend-item" style="margin-left: 16px;">
+      <svg width="24" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="#475569" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/></svg>
+      Data flow
+    </div>
+  </div>
+
+  <footer>Generated for youtube-to-blog · MIT License · github.com/dlcsouza/youtube-to-blog</footer>
+
+</body>
+</html>
